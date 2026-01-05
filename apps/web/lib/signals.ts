@@ -66,12 +66,20 @@ export const QUAD_ALLOCATIONS: Record<string, Record<string, number>> = {
   },
 };
 
-// EXACT copy from config.py - QUAD_INDICATORS
+// From signal_generator.py - QUAD_INDICATORS for momentum scoring
 export const QUAD_INDICATORS: Record<string, string[]> = {
   Q1: ['QQQ', 'VUG', 'IWM', 'BTC-USD'],
-  Q2: ['XLE', 'DBC', 'GCC', 'LIT'],
-  Q3: ['GLD', 'DBC', 'DBA', 'REMX', 'URA', 'LIT'],
+  Q2: ['XLE', 'DBC'],
+  Q3: ['GLD', 'LIT'],
   Q4: ['TLT', 'XLU', 'VIXY'],
+};
+
+// Leverage by quadrant (from signal_generator.py)
+export const QUAD_LEVERAGE: Record<string, number> = {
+  Q1: 1.5,  // Goldilocks - overweight
+  Q2: 1.0,  // Reflation
+  Q3: 1.0,  // Stagflation
+  Q4: 1.0,  // Deflation
 };
 
 // Quadrant info
@@ -284,11 +292,13 @@ export async function generateSignals(): Promise<{ regime: RegimeData; signals: 
   // Calculate target weights for top 2 quadrants
   // Using volatility chasing like the Python code
   const weights: Record<string, number> = {};
-  const BASE_LEVERAGE = 1.5; // Same as Python
 
   for (const quad of [top1, top2]) {
     const quadAssets = QUAD_ALLOCATIONS[quad];
     if (!quadAssets) continue;
+
+    // Get leverage for this specific quadrant (Q1=1.5x, others=1.0x)
+    const quadLeverage = QUAD_LEVERAGE[quad] || 1.0;
 
     const quadVols: Record<string, number> = {};
 
@@ -310,7 +320,7 @@ export async function generateSignals(): Promise<{ regime: RegimeData; signals: 
     const totalVol = Object.values(quadVols).reduce((a, b) => a + b, 0);
     if (totalVol > 0) {
       for (const [ticker, vol] of Object.entries(quadVols)) {
-        const volWeight = (vol / totalVol) * BASE_LEVERAGE;
+        const volWeight = (vol / totalVol) * quadLeverage;
 
         // Apply EMA filter - only allocate if price > EMA
         const tickerData = data.get(ticker);
