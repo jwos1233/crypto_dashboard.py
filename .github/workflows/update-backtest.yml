@@ -1,13 +1,15 @@
-name: Update Signals Data
+name: Update Backtest Data
 
 on:
+  push:
+    branches: [main, master]
   schedule:
-    # Run daily at 22:00 UTC (after US market close)
-    - cron: '0 22 * * 1-5'
+    # Run daily at 6 AM UTC (after market close)
+    - cron: '0 6 * * *'
   workflow_dispatch: # Allow manual trigger
 
 jobs:
-  update-signals:
+  update-backtest:
     runs-on: ubuntu-latest
 
     steps:
@@ -22,13 +24,14 @@ jobs:
         run: |
           pip install pandas numpy yfinance
 
-      - name: Run signal generator and export to JSON
-        run: python scripts/update_signals.py
+      - name: Run backtest and generate history.json
+        run: |
+          python run_production_backtest.py || true
 
       - name: Commit and push if changed
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add apps/web/data/signals.json
-          git diff --staged --quiet || git commit -m "Update signals data [skip ci]"
+          git add apps/web/data/history.json
+          git diff --staged --quiet || git commit -m "Update backtest data [skip ci]"
           git push
