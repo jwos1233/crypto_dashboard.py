@@ -1,0 +1,95 @@
+{
+  "regime": {
+    "primaryQuadrant": "Q1",
+    "secondaryQuadrant": "Q2",
+    "growthDirection": "rising",
+    "inflationDirection": "falling",
+    "daysInRegime": 1,
+    "lastChange": "2025-01-05T00:00:00Z",
+    "confidence": 0.85,
+    "timestamp": "2025-01-05T12:00:00Z"
+  },
+  "signals": [
+    {
+      "asset": "QQQ",
+      "signal": "BULLISH",
+      "targetAllocation": 0.25,
+      "conviction": "high",
+      "category": "growth",
+      "quadrant": "Q1"
+    },
+    {
+      "asset": "IBIT",
+      "signal": "BULLISH",
+      "targetAllocation": 0.18,
+      "conviction": "high",
+      "category": "core",
+      "quadrant": "Q1"
+    },
+    {
+      "asset": "ARKK",
+      "signal": "BULLISH",
+      "targetAllocation": 0.12,
+      "conviction": "medium",
+      "category": "growth",
+      "quadrant": "Q1"
+    },
+    {
+      "asset": "XLE",
+      "signal": "BULLISH",
+      "targetAllocation": 0.10,
+      "conviction": "medium",
+      "category": "commodities",
+      "quadrant": "Q2"
+    },
+    {
+      "asset": "IWM",
+      "signal": "BULLISH",
+      "targetAllocation": 0.08,
+      "conviction": "medium",
+      "category": "growth",
+      "quadrant": "Q1"
+    },
+    {
+      "asset": "DBC",
+      "signal": "BULLISH",
+      "targetAllocation": 0.07,
+      "conviction": "medium",
+      "category": "commodities",
+      "quadrant": "Q2"
+    },
+    {
+      "asset": "XLC",
+      "signal": "BULLISH",
+      "targetAllocation": 0.06,
+      "conviction": "low",
+      "category": "growth",
+      "quadrant": "Q1"
+    },
+    {
+      "asset": "TLT",
+      "signal": "BULLISH",
+      "targetAllocation": 0.05,
+      "conviction": "low",
+      "category": "bonds",
+      "quadrant": "Q1"
+    },
+    {
+      "asset": "GCC",
+      "signal": "NEUTRAL",
+      "targetAllocation": 0.05,
+      "conviction": "low",
+      "category": "commodities",
+      "quadrant": "Q2"
+    },
+    {
+      "asset": "LQD",
+      "signal": "NEUTRAL",
+      "targetAllocation": 0.04,
+      "conviction": "low",
+      "category": "bonds",
+      "quadrant": "Q1"
+    }
+  ],
+  "generatedAt": "2025-01-05T12:00:00Z"
+}
