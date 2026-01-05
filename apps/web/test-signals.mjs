@@ -150,7 +150,8 @@ function calculateMomentum(data, days = 20) {
 }
 
 function calculateVolatility(data, days = 30) {
-  if (data.length < days + 1) return 0.2;
+  // Return 0 if insufficient data (like Python - will be filtered out)
+  if (data.length < days + 1) return 0;
   const returns = [];
   const recentData = data.slice(-days - 1);
   for (let i = 1; i < recentData.length; i++) {
@@ -159,7 +160,7 @@ function calculateVolatility(data, days = 30) {
       returns.push(ret);
     }
   }
-  if (returns.length === 0) return 0.2;
+  if (returns.length === 0) return 0;
   const mean = returns.reduce((a, b) => a + b, 0) / returns.length;
   const variance = returns.reduce((sum, ret) => sum + Math.pow(ret - mean, 2), 0) / returns.length;
   return Math.sqrt(variance) * Math.sqrt(252);
@@ -218,53 +219,89 @@ async function main() {
     const quadLeverage = QUAD_LEVERAGE[quad] || 1.0;
     console.log(`\nProcessing ${quad} with leverage ${quadLeverage}x`);
 
-    const quadVols = {};
-
-    for (const ticker of Object.keys(quadAssets)) {
+    // Get tickers with valid data only (like Python)
+    const quadTickers = Object.keys(quadAssets).filter(ticker => {
       const tickerData = data.get(ticker);
-      if (tickerData && tickerData.length > 30) {
-        const vol = calculateVolatility(tickerData, 30);
-        if (vol > 0) {
-          quadVols[ticker] = vol;
-        }
-      } else {
-        quadVols[ticker] = 0.2;
+      return tickerData && tickerData.length > 30;
+    });
+
+    if (quadTickers.length === 0) continue;
+
+    // Calculate volatilities for assets with valid data only
+    const quadVols = {};
+    for (const ticker of quadTickers) {
+      const tickerData = data.get(ticker);
+      const vol = calculateVolatility(tickerData, 30);
+      if (vol > 0) {
+        quadVols[ticker] = vol;
       }
     }
 
+    if (Object.keys(quadVols).length === 0) continue;
+
+    // Volatility chasing weights
     const totalVol = Object.values(quadVols).reduce((a, b) => a + b, 0);
-    if (totalVol > 0) {
-      for (const [ticker, vol] of Object.entries(quadVols)) {
-        const volWeight = (vol / totalVol) * quadLeverage;
+    const volWeights = {};
+    for (const [ticker, vol] of Object.entries(quadVols)) {
+      volWeights[ticker] = (vol / totalVol) * quadLeverage;
+    }
 
-        const tickerData = data.get(ticker);
-        if (tickerData && tickerData.length > 50) {
-          const currentPrice = tickerData[tickerData.length - 1].close;
-          const ema = calculateEMA(tickerData, 50);
-          const aboveEMA = currentPrice > ema;
-          console.log(`${ticker}: price=${currentPrice.toFixed(2)}, EMA=${ema.toFixed(2)}, aboveEMA=${aboveEMA}`);
+    // Apply EMA filter - STRICT like Python
+    for (const [ticker, volWeight] of Object.entries(volWeights)) {
+      const tickerData = data.get(ticker);
+      const currentPrice = tickerData[tickerData.length - 1].close;
+      const ema = calculateEMA(tickerData, 50);
 
-          if (aboveEMA) {
-            weights[ticker] = (weights[ticker] || 0) + volWeight;
-          }
-        } else {
+      // Only apply filter if we have valid EMA
+      if (ema > 0 && currentPrice > 0) {
+        const aboveEMA = currentPrice > ema;
+        console.log(`${ticker}: price=${currentPrice.toFixed(2)}, EMA=${ema.toFixed(2)}, aboveEMA=${aboveEMA}`);
+
+        if (aboveEMA) {
+          // Pass EMA filter - add to weights
           weights[ticker] = (weights[ticker] || 0) + volWeight;
         }
+        // If below EMA, don't add to weights (excluded)
       }
+      // If EMA is 0 (insufficient data), skip entirely
     }
   }
 
-  const sortedWeights = Object.entries(weights)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10);
+  // Filter to top N positions if max_positions is set (like Python)
+  const MAX_POSITIONS = 10;
+  let finalWeights = { ...weights };
 
-  console.log('\n=== FINAL SIGNALS (Top 10) ===');
-  let total = 0;
+  if (Object.keys(finalWeights).length > MAX_POSITIONS) {
+    // Sort by weight and keep top N
+    const sortedW = Object.entries(finalWeights)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, MAX_POSITIONS);
+    const topNWeights = Object.fromEntries(sortedW);
+
+    // Re-normalize to maintain total leverage
+    const originalTotal = Object.values(finalWeights).reduce((a, b) => a + b, 0);
+    const newTotal = Object.values(topNWeights).reduce((a, b) => a + b, 0);
+    const scaleFactor = newTotal > 0 ? originalTotal / newTotal : 1;
+
+    finalWeights = {};
+    for (const [ticker, weight] of Object.entries(topNWeights)) {
+      finalWeights[ticker] = weight * scaleFactor;
+    }
+  }
+
+  // Calculate total leverage
+  const totalLeverage = Object.values(finalWeights).reduce((a, b) => a + b, 0);
+
+  // Sort by weight for display
+  const sortedWeights = Object.entries(finalWeights).sort((a, b) => b[1] - a[1]);
+
+  console.log('\n=== FINAL SIGNALS ===');
+  console.log(`Total positions: ${sortedWeights.length}`);
+  console.log(`Total leverage: ${(totalLeverage * 100).toFixed(2)}%`);
+  console.log('\nPositions (sorted by weight):');
   sortedWeights.forEach(([ticker, weight]) => {
-    console.log(`${ticker}: ${(weight * 100).toFixed(2)}%`);
-    total += weight;
+    console.log(`  ${ticker}: ${(weight * 100).toFixed(2)}%`);
   });
-  console.log(`\nTotal allocation: ${(total * 100).toFixed(2)}%`);
 }
 
 main().catch(console.error);
