@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
-import signalsData from '@/data/signals.json';
+import { generateSignals } from '@/lib/signals';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET(request: Request) {
   try {
@@ -7,8 +10,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const portfolioSize = parseFloat(searchParams.get('size') || '10000');
 
-    const signals = signalsData.signals;
-    const regime = signalsData.regime;
+    const { signals, regime } = await generateSignals();
 
     // Build portfolio positions
     const positions = signals
@@ -59,9 +61,8 @@ export async function GET(request: Request) {
       regime: {
         quadrant: regime.primaryQuadrant,
         secondaryQuadrant: regime.secondaryQuadrant,
-        daysInRegime: regime.daysInRegime,
       },
-      timestamp: signalsData.generatedAt,
+      timestamp: regime.timestamp,
     };
 
     return NextResponse.json(response);

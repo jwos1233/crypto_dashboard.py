@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
-import signalsData from '@/data/signals.json';
+import { generateSignals, QUADRANT_INFO } from '@/lib/signals';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET() {
   try {
-    const regime = signalsData.regime;
+    const { regime } = await generateSignals();
 
     const response = {
       quadrant: regime.primaryQuadrant,
@@ -11,10 +14,9 @@ export async function GET() {
       secondaryQuadrant: regime.secondaryQuadrant,
       growthDirection: regime.growthDirection,
       inflationDirection: regime.inflationDirection,
-      daysInRegime: regime.daysInRegime,
-      lastChange: regime.lastChange,
       confidence: regime.confidence,
       timestamp: regime.timestamp,
+      quadrantScores: regime.quadrantScores,
       quadrantInfo: getQuadrantInfo(regime.primaryQuadrant),
     };
 

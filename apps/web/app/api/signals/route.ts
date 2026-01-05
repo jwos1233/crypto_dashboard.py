@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
-import signalsData from '@/data/signals.json';
+import { generateSignals } from '@/lib/signals';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET() {
   try {
-    const signals = signalsData.signals;
+    const { signals, regime } = await generateSignals();
 
     // Calculate totals
     const totalAllocation = signals.reduce(
@@ -25,7 +28,7 @@ export async function GET() {
         totalSignals: signals.length,
         totalAllocation,
         cashAllocation: Math.max(0, 1 - totalAllocation),
-        timestamp: signalsData.generatedAt,
+        timestamp: regime.timestamp,
         isDelayed: false,
         delayHours: 0,
       },
