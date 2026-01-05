@@ -7,7 +7,6 @@ import {
   Zap,
   BarChart3,
   ArrowRight,
-  CheckCircle,
 } from 'lucide-react';
 
 export default function LandingPage() {
@@ -23,13 +22,8 @@ export default function LandingPage() {
             <span className="font-bold text-xl text-white">Crypto Macro</span>
           </div>
           <div className="flex items-center space-x-4">
-            <Link href="/login">
-              <Button variant="ghost" className="text-slate-300 hover:text-white">
-                Sign in
-              </Button>
-            </Link>
-            <Link href="/signup">
-              <Button>Get Started</Button>
+            <Link href="/dashboard">
+              <Button>View Dashboard</Button>
             </Link>
           </div>
         </div>
@@ -49,14 +43,9 @@ export default function LandingPage() {
           420% backtested returns over 5 years.
         </p>
         <div className="flex items-center justify-center gap-4">
-          <Link href="/signup">
+          <Link href="/dashboard">
             <Button size="lg" className="text-lg px-8">
-              Start Free <ArrowRight className="ml-2 w-5 h-5" />
-            </Button>
-          </Link>
-          <Link href="/performance">
-            <Button size="lg" variant="outline" className="text-lg px-8">
-              View Performance
+              View Signals <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
           </Link>
         </div>
@@ -150,23 +139,15 @@ export default function LandingPage() {
             Ready to Systematize Your Crypto Allocation?
           </h2>
           <p className="text-slate-400 mb-8">
-            Start with our free tier - see the current regime and delayed signals.
-            Upgrade anytime for real-time access.
+            View current macro regime and portfolio signals.
+            Updated daily based on market conditions.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/signup">
+            <Link href="/dashboard">
               <Button size="lg" className="text-lg px-8 w-full sm:w-auto">
-                Create Free Account
+                View Dashboard
               </Button>
             </Link>
-          </div>
-          <div className="flex items-center justify-center gap-6 mt-6 text-sm text-slate-400">
-            <span className="flex items-center gap-1">
-              <CheckCircle className="w-4 h-4 text-green-500" /> No credit card required
-            </span>
-            <span className="flex items-center gap-1">
-              <CheckCircle className="w-4 h-4 text-green-500" /> Cancel anytime
-            </span>
           </div>
         </div>
       </section>
