@@ -45,8 +45,8 @@ export async function GET(request: Request) {
         asset: 'USDC',
         allocation: cashAllocation,
         dollarAmount: cashAllocation * portfolioSize,
-        signal: 'HOLD',
-        conviction: '-',
+        signal: 'NEUTRAL' as const,
+        conviction: 'low' as const,
         category: 'stable',
         quadrant: '-',
       });
