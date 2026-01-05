@@ -1,50 +1,18 @@
 import { NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth';
-import { prisma } from '@/lib/db';
-import { canAccessAsset, canAccessFeature, getSignalDelay } from '@/lib/tier-config';
+import signalsData from '@/data/signals.json';
 
 export async function GET(request: Request) {
   try {
-    const session = await getSession();
-
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    const tier = session.user.tier || 'free';
-
-    // Check if tier has portfolio access
-    if (!canAccessFeature(tier, 'modelPortfolio')) {
-      return NextResponse.json(
-        {
-          error: 'Portfolio access requires Starter tier or higher',
-          upgradeRequired: true,
-        },
-        { status: 403 }
-      );
-    }
-
     // Get portfolio size from query param (optional)
     const { searchParams } = new URL(request.url);
     const portfolioSize = parseFloat(searchParams.get('size') || '10000');
 
-    // Fetch signals
-    const signals = await prisma.currentSignal.findMany({
-      orderBy: { targetAllocation: 'desc' },
-    });
-
-    // Fetch current regime
-    const regime = await prisma.currentRegime.findFirst({
-      orderBy: { timestamp: 'desc' },
-    });
+    const signals = signalsData.signals;
+    const regime = signalsData.regime;
 
     // Build portfolio positions
     const positions = signals
       .filter((s) => s.targetAllocation > 0)
-      .filter((s) => canAccessAsset(tier, s.asset))
       .map((signal) => {
         const dollarAmount = signal.targetAllocation * portfolioSize;
 
@@ -88,14 +56,12 @@ export async function GET(request: Request) {
       cashAllocation,
       positions,
       categoryAllocations,
-      regime: regime
-        ? {
-            quadrant: regime.primaryQuadrant,
-            secondaryQuadrant: regime.secondaryQuadrant,
-            daysInRegime: regime.daysInRegime,
-          }
-        : null,
-      timestamp: new Date().toISOString(),
+      regime: {
+        quadrant: regime.primaryQuadrant,
+        secondaryQuadrant: regime.secondaryQuadrant,
+        daysInRegime: regime.daysInRegime,
+      },
+      timestamp: signalsData.generatedAt,
     };
 
     return NextResponse.json(response);

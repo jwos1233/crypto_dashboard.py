@@ -1,24 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth';
-import { prisma } from '@/lib/db';
+import signalsData from '@/data/signals.json';
 
 export async function GET() {
   try {
-    const session = await getSession();
+    const regime = signalsData.regime;
 
-    // Public endpoint - but tier affects data freshness
-    const regime = await prisma.currentRegime.findFirst({
-      orderBy: { timestamp: 'desc' },
-    });
-
-    if (!regime) {
-      return NextResponse.json(
-        { error: 'No regime data available' },
-        { status: 404 }
-      );
-    }
-
-    // Map to API response format
     const response = {
       quadrant: regime.primaryQuadrant,
       primaryQuadrant: regime.primaryQuadrant,
@@ -29,7 +15,6 @@ export async function GET() {
       lastChange: regime.lastChange,
       confidence: regime.confidence,
       timestamp: regime.timestamp,
-      // Add quadrant metadata
       quadrantInfo: getQuadrantInfo(regime.primaryQuadrant),
     };
 

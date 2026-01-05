@@ -1,63 +1,19 @@
-import { getSession } from '@/lib/auth';
 import { RegimeCard } from '@/components/dashboard/regime-card';
 import { SignalsTable } from '@/components/dashboard/signals-table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { ArrowRight, Zap, TrendingUp, Shield } from 'lucide-react';
+import { TrendingUp, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
-export default async function DashboardPage() {
-  const session = await getSession();
-  const tier = session?.user?.tier || 'free';
-  const isFreeTier = tier === 'free';
-
+export default function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Welcome Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Welcome back{session?.user?.name ? `, ${session.user.name}` : ''}
-          </p>
-        </div>
-        {isFreeTier && (
-          <Link href="/dashboard/account">
-            <Button>
-              <Zap className="w-4 h-4 mr-2" />
-              Upgrade for real-time signals
-            </Button>
-          </Link>
-        )}
+      <div>
+        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <p className="text-muted-foreground">
+          Crypto Macro Overlay - Current Signals
+        </p>
       </div>
-
-      {/* Free tier notice */}
-      {isFreeTier && (
-        <Card className="border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/20">
-          <CardContent className="py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-amber-100 dark:bg-amber-900/50 rounded-lg">
-                  <Shield className="w-5 h-5 text-amber-600" />
-                </div>
-                <div>
-                  <p className="font-medium">Free Tier - 24h Delayed Signals</p>
-                  <p className="text-sm text-muted-foreground">
-                    Upgrade to Starter for real-time signals and full portfolio access
-                  </p>
-                </div>
-              </div>
-              <Link href="/dashboard/account">
-                <Button variant="outline" size="sm">
-                  View Plans
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Main Grid */}
       <div className="grid gap-6 lg:grid-cols-3">
