@@ -67,21 +67,18 @@ print("="*70)
 # Export to history.json for dashboard
 print("\nExporting to dashboard...")
 
-# Build performance history (monthly snapshots)
+# Build performance history (daily)
 portfolio_value = backtest.portfolio_value
 performance_history = []
 
-# Sample monthly
-monthly_dates = portfolio_value.resample('M').last().index
-for date in monthly_dates:
-    if date in portfolio_value.index:
-        value = portfolio_value.loc[date]
-        returns = (value / INITIAL_CAPITAL - 1) * 100
-        performance_history.append({
-            'date': date.strftime('%Y-%m-%d'),
-            'value': round(float(value), 2),
-            'totalReturn': round(float(returns), 2),
-        })
+for date in portfolio_value.index:
+    value = portfolio_value.loc[date]
+    returns = (value / INITIAL_CAPITAL - 1) * 100
+    performance_history.append({
+        'date': date.strftime('%Y-%m-%d'),
+        'value': round(float(value), 2),
+        'totalReturn': round(float(returns), 2),
+    })
 
 # Build history data
 history_data = {
