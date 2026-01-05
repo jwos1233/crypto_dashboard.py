@@ -4,15 +4,15 @@ import sys
 import os
 from urllib.parse import urlparse, parse_qs
 
-# Add the repo root to path so we can import our modules
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+# Add current directory to path for local imports
+sys.path.insert(0, os.path.dirname(__file__))
+
+from signal_generator import SignalGenerator
+from config import QUAD_ALLOCATIONS, QUAD_INDICATORS
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
-            from signal_generator import SignalGenerator
-            from config import QUAD_ALLOCATIONS, QUAD_INDICATORS
-
             # Parse query params
             query = parse_qs(urlparse(self.path).query)
             portfolio_size = float(query.get('size', ['10000'])[0])

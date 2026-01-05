@@ -3,15 +3,15 @@ import json
 import sys
 import os
 
-# Add the repo root to path so we can import our modules
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+# Add current directory to path for local imports
+sys.path.insert(0, os.path.dirname(__file__))
+
+from quad_portfolio_backtest import QuadrantPortfolioBacktest
+from config import QUAD_ALLOCATIONS
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
-            from quad_portfolio_backtest import QuadrantPortfolioBacktest
-            from config import QUAD_ALLOCATIONS
-            from pathlib import Path
 
             # Run the backtest
             backtest = QuadrantPortfolioBacktest(
