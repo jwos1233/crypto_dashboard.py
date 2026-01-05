@@ -231,7 +231,9 @@ function calculateVolatility(data: HistoricalData[], days: number = 30): number 
 }
 
 function calculateEMA(data: HistoricalData[], period: number = 50): number {
-  if (data.length < period) return 0;
+  // Match pandas ewm() behavior - calculate from whatever data is available
+  // pandas ewm() doesn't require minimum length, it just uses all available data
+  if (data.length === 0) return 0;
 
   const multiplier = 2 / (period + 1);
   let ema = data[0].close;
@@ -316,12 +318,11 @@ export async function generateSignals(): Promise<GenerateSignalsResult> {
     // Get leverage for this specific quadrant (Q1=1.5x, others=1.0x)
     const quadLeverage = QUAD_LEVERAGE[quad] || 1.0;
 
-    // Get tickers that have valid data
-    // CRITICAL: Need >= 50 days for EMA calculation (not 30!)
-    // Python requires sufficient data for both volatility AND EMA
+    // Get tickers that have valid data (matches Python: just check if data exists)
+    // Python: quad_tickers = [t for t in QUAD_ALLOCATIONS[quad].keys() if t in price_data.columns]
     const quadTickers = Object.keys(quadAssets).filter(ticker => {
       const tickerData = data.get(ticker);
-      return tickerData && tickerData.length >= 50;
+      return tickerData && tickerData.length > 0;
     });
 
     if (quadTickers.length === 0) continue;
@@ -345,14 +346,18 @@ export async function generateSignals(): Promise<GenerateSignalsResult> {
       volWeights[ticker] = (vol / totalVol) * quadLeverage;
     }
 
-    // Apply EMA filter - STRICT like Python: only allocate if price > EMA
+    // Apply EMA filter - matches Python:
+    // if pd.notna(current_price) and pd.notna(current_ema) and current_price > current_ema:
     for (const [ticker, volWeight] of Object.entries(volWeights)) {
       const tickerData = data.get(ticker)!;
       const currentPrice = tickerData[tickerData.length - 1].close;
       const ema = calculateEMA(tickerData, 50);
 
-      // Only apply filter if we have valid EMA (non-zero means we had enough data)
-      if (ema > 0 && currentPrice > 0) {
+      // Check for valid values (like pd.notna in Python)
+      const priceValid = currentPrice > 0 && isFinite(currentPrice);
+      const emaValid = ema > 0 && isFinite(ema);
+
+      if (priceValid && emaValid) {
         if (currentPrice > ema) {
           // Pass EMA filter - add to weights
           weights[ticker] = (weights[ticker] || 0) + volWeight;
@@ -365,7 +370,6 @@ export async function generateSignals(): Promise<GenerateSignalsResult> {
           };
         }
       }
-      // If EMA is 0 (insufficient data), skip entirely like Python
     }
   }
 
