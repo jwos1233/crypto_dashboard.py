@@ -1,69 +1,116 @@
+'use client';
+
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, TrendingDown, ArrowRight } from 'lucide-react';
 
-// Static history data for demo
-const historyItems = [
-  {
-    id: 1,
-    date: '2025-01-05',
-    type: 'regime',
-    title: 'Regime confirmed: Q1 Goldilocks',
-    description: 'Growth rising, inflation falling - risk-on positioning confirmed',
-    icon: 'up',
-  },
-  {
-    id: 2,
-    date: '2025-01-04',
-    type: 'signal',
-    title: 'SOL signal changed: BULLISH → NEUTRAL',
-    description: 'Momentum declining, reduced allocation to 4%',
-    icon: 'neutral',
-  },
-  {
-    id: 3,
-    date: '2025-01-02',
-    type: 'signal',
-    title: 'New position: ARB added to portfolio',
-    description: 'L2 sector allocation initiated at 5%',
-    icon: 'up',
-  },
-  {
-    id: 4,
-    date: '2024-12-28',
-    type: 'regime',
-    title: 'Regime transition: Q4 → Q1',
-    description: 'Growth turning positive while inflation continues to moderate',
-    icon: 'up',
-  },
-  {
-    id: 5,
-    date: '2024-12-20',
-    type: 'signal',
-    title: 'BTC signal changed: NEUTRAL → BULLISH',
-    description: 'Momentum improving as regime shifts to risk-on',
-    icon: 'up',
-  },
-  {
-    id: 6,
-    date: '2024-12-15',
-    type: 'signal',
-    title: 'TLT allocation increased',
-    description: 'Bond allocation raised to 5% as deflation concerns persist',
-    icon: 'neutral',
-  },
-];
+interface HistoryEvent {
+  id: number;
+  date: string;
+  type: 'regime' | 'signal';
+  title: string;
+  description: string;
+  icon: 'up' | 'down' | 'neutral';
+}
+
+interface HistoryResponse {
+  events: HistoryEvent[];
+  performance: Array<{
+    date: string;
+    value: number;
+    totalReturn: number;
+  }>;
+  summary: {
+    totalReturn: number;
+    annualReturn: number;
+    sharpe: number;
+    maxDrawdown: number;
+    finalValue: number;
+  };
+  generatedAt: string;
+}
+
+async function fetchHistory(): Promise<HistoryResponse> {
+  const res = await fetch('/api/history');
+  if (!res.ok) throw new Error('Failed to fetch history');
+  return res.json();
+}
 
 export default function HistoryPage() {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['history'],
+    queryFn: fetchHistory,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold">History</h1>
+          <p className="text-muted-foreground">Loading historical data...</p>
+        </div>
+        <div className="animate-pulse space-y-4">
+          <div className="h-32 bg-slate-200 dark:bg-slate-700 rounded" />
+          <div className="h-64 bg-slate-200 dark:bg-slate-700 rounded" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold">History</h1>
+          <p className="text-muted-foreground">Unable to load history data</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">History</h1>
         <p className="text-muted-foreground">
-          Signal changes and regime transitions
+          Signal changes and regime transitions from backtest
         </p>
       </div>
 
+      {/* Performance Summary */}
+      <div className="grid gap-4 sm:grid-cols-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Total Return</CardDescription>
+            <CardTitle className={`text-2xl ${data.summary.totalReturn >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {data.summary.totalReturn >= 0 ? '+' : ''}{data.summary.totalReturn.toFixed(2)}%
+            </CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Annual Return</CardDescription>
+            <CardTitle className={`text-2xl ${data.summary.annualReturn >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {data.summary.annualReturn >= 0 ? '+' : ''}{data.summary.annualReturn.toFixed(2)}%
+            </CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Sharpe Ratio</CardDescription>
+            <CardTitle className="text-2xl">{data.summary.sharpe.toFixed(2)}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Max Drawdown</CardDescription>
+            <CardTitle className="text-2xl text-amber-600">{data.summary.maxDrawdown.toFixed(2)}%</CardTitle>
+          </CardHeader>
+        </Card>
+      </div>
+
+      {/* Recent Activity */}
       <Card>
         <CardHeader>
           <CardTitle>Recent Activity</CardTitle>
@@ -75,7 +122,7 @@ export default function HistoryPage() {
             <div className="absolute left-4 top-0 bottom-0 w-px bg-slate-200 dark:bg-slate-700" />
 
             <div className="space-y-6">
-              {historyItems.map((item) => (
+              {data.events.slice(0, 50).map((item) => (
                 <div key={item.id} className="relative pl-10">
                   {/* Timeline dot */}
                   <div className="absolute left-0 top-1 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center z-10">
@@ -102,6 +149,12 @@ export default function HistoryPage() {
               ))}
             </div>
           </div>
+
+          {data.events.length > 50 && (
+            <p className="text-center text-sm text-muted-foreground mt-6">
+              Showing 50 of {data.events.length} events
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>
