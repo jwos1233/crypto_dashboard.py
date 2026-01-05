@@ -2,6 +2,8 @@
 Run Production v3.0 Backtest - Top 10 + ATR 2.0x
 """
 
+import json
+from pathlib import Path
 from quad_portfolio_backtest import QuadrantPortfolioBacktest
 from datetime import datetime, timedelta
 
@@ -61,6 +63,48 @@ backtest.plot_results()
 print("\n" + "="*70)
 print("Chart displayed! Close the chart window to continue.")
 print("="*70)
+
+# Export to history.json for dashboard
+print("\nExporting to dashboard...")
+
+# Build performance history (monthly snapshots)
+portfolio_value = backtest.portfolio_value
+performance_history = []
+
+# Sample monthly
+monthly_dates = portfolio_value.resample('M').last().index
+for date in monthly_dates:
+    if date in portfolio_value.index:
+        value = portfolio_value.loc[date]
+        returns = (value / INITIAL_CAPITAL - 1) * 100
+        performance_history.append({
+            'date': date.strftime('%Y-%m-%d'),
+            'value': round(float(value), 2),
+            'totalReturn': round(float(returns), 2),
+        })
+
+# Build history data
+history_data = {
+    'events': [],  # Could extract regime changes here if needed
+    'performance': performance_history,
+    'summary': {
+        'totalReturn': round(results['total_return'], 2),
+        'annualReturn': round(results['annual_return'], 2),
+        'sharpe': round(results['sharpe'], 2),
+        'maxDrawdown': round(results['max_drawdown'], 2),
+        'finalValue': round(results['final_value'], 2),
+    },
+    'generatedAt': datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ'),
+}
+
+# Write to dashboard data folder
+output_path = Path(__file__).parent / 'apps' / 'web' / 'data' / 'history.json'
+output_path.parent.mkdir(parents=True, exist_ok=True)
+
+with open(output_path, 'w') as f:
+    json.dump(history_data, f, indent=2)
+
+print(f"✅ Exported to {output_path}")
 
 
 
