@@ -8,32 +8,30 @@ export const revalidate = 0;
 
 export async function GET() {
   try {
-    // Run the Python backtest script to generate fresh data
-    const rootDir = path.join(process.cwd(), '..', '..');
-    const scriptPath = path.join(rootDir, 'run_production_backtest.py');
+    // Find the repo root (go up from apps/web)
+    const repoRoot = path.resolve(process.cwd(), '..', '..');
+    const scriptPath = path.join(repoRoot, 'run_production_backtest.py');
+    const dataPath = path.join(process.cwd(), 'data', 'history.json');
 
-    try {
-      execSync(`python ${scriptPath}`, {
-        cwd: rootDir,
-        timeout: 120000, // 2 minute timeout
-        stdio: 'pipe',
-      });
-    } catch (execError) {
-      console.error('Python script error (using cached data):', execError);
-      // Fall through to read cached data
+    // Run Python script if it exists
+    if (fs.existsSync(scriptPath)) {
+      try {
+        execSync(`python3 "${scriptPath}"`, {
+          cwd: repoRoot,
+          timeout: 120000,
+          stdio: 'pipe',
+          env: { ...process.env, MPLBACKEND: 'Agg' }, // Headless matplotlib
+        });
+      } catch (e) {
+        console.error('Python execution failed:', e);
+      }
     }
 
-    // Read the generated JSON
-    const dataPath = path.join(process.cwd(), 'data', 'history.json');
+    // Return the JSON data
     const fileContent = fs.readFileSync(dataPath, 'utf-8');
-    const historyData = JSON.parse(fileContent);
-
-    return NextResponse.json(historyData);
+    return NextResponse.json(JSON.parse(fileContent));
   } catch (error) {
-    console.error('Error fetching history:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch history data' },
-      { status: 500 }
-    );
+    console.error('History API error:', error);
+    return NextResponse.json({ error: 'Failed to fetch history' }, { status: 500 });
   }
 }
