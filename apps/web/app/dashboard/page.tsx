@@ -1,5 +1,6 @@
 import { RegimeCard } from '@/components/dashboard/regime-card';
 import { SignalsTable } from '@/components/dashboard/signals-table';
+import { BacktestChart } from '@/components/dashboard/backtest-chart';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { TrendingUp, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
@@ -22,37 +23,9 @@ export default function DashboardPage() {
           <RegimeCard />
         </div>
 
-        {/* Quick Stats - Right columns */}
-        <div className="lg:col-span-2 grid gap-4 sm:grid-cols-3">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Model Performance</CardDescription>
-              <CardTitle className="text-2xl text-green-600">+420%</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground">5-year backtest return</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Sharpe Ratio</CardDescription>
-              <CardTitle className="text-2xl">1.41</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground">Risk-adjusted return</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Max Drawdown</CardDescription>
-              <CardTitle className="text-2xl text-amber-600">-22.6%</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground">Worst peak-to-trough</p>
-            </CardContent>
-          </Card>
+        {/* Backtest Chart - Right columns */}
+        <div className="lg:col-span-2">
+          <BacktestChart />
         </div>
       </div>
 
