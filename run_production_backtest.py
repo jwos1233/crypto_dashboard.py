@@ -56,15 +56,7 @@ backtest.print_spy_comparison()
 # Annual breakdown
 backtest.print_annual_breakdown()
 
-# Plot results
-print("\nGenerating P/L Chart...")
-backtest.plot_results()
-
-print("\n" + "="*70)
-print("Chart displayed! Close the chart window to continue.")
-print("="*70)
-
-# Export to history.json for dashboard
+# Export to history.json for dashboard FIRST (before plot which may fail in CI)
 print("\nExporting to dashboard...")
 
 # Build performance history (daily)
@@ -102,6 +94,16 @@ with open(output_path, 'w') as f:
     json.dump(history_data, f, indent=2)
 
 print(f"✅ Exported to {output_path}")
+
+# Plot results (optional - may fail in headless CI environment)
+try:
+    print("\nGenerating P/L Chart...")
+    backtest.plot_results()
+    print("\n" + "="*70)
+    print("Chart displayed! Close the chart window to continue.")
+    print("="*70)
+except Exception as e:
+    print(f"\nSkipping chart display (headless mode): {e}")
 
 
 
