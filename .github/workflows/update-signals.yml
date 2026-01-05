@@ -14,8 +14,10 @@ on:
       - main
     paths:
       - 'signal_generator.py'
+      - 'quad_portfolio_backtest.py'
       - 'config.py'
       - 'scripts/update_signals.py'
+      - 'scripts/generate_history.py'
 
 jobs:
   update-signals:
@@ -41,16 +43,20 @@ jobs:
         run: |
           python scripts/update_signals.py
 
+      - name: Run history generation script
+        run: |
+          python scripts/generate_history.py
+
       - name: Check for changes
         id: git-check
         run: |
-          git diff --quiet apps/web/data/signals.json || echo "changes=true" >> $GITHUB_OUTPUT
+          git diff --quiet apps/web/data/ || echo "changes=true" >> $GITHUB_OUTPUT
 
       - name: Commit and push changes
         if: steps.git-check.outputs.changes == 'true'
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add apps/web/data/signals.json
-          git commit -m "Update signals - $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git add apps/web/data/signals.json apps/web/data/history.json
+          git commit -m "Update signals and history - $(date -u '+%Y-%m-%d %H:%M UTC')"
           git push

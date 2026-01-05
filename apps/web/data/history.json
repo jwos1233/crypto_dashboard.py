@@ -1,0 +1,66 @@
+{
+  "events": [
+    {
+      "id": 1,
+      "date": "2025-01-05",
+      "type": "regime",
+      "title": "Regime confirmed: Q1 Goldilocks",
+      "description": "Primary quadrant is Goldilocks, secondary is Reflation",
+      "icon": "up"
+    },
+    {
+      "id": 2,
+      "date": "2025-01-02",
+      "type": "signal",
+      "title": "QQQ allocation increased",
+      "description": "24.0% → 36.5%",
+      "icon": "up"
+    },
+    {
+      "id": 3,
+      "date": "2024-12-28",
+      "type": "regime",
+      "title": "Regime transition: Q4 → Q1",
+      "description": "Primary quadrant changed to Goldilocks, secondary is Reflation",
+      "icon": "up"
+    },
+    {
+      "id": 4,
+      "date": "2024-12-20",
+      "type": "signal",
+      "title": "New position: ARKK added",
+      "description": "Allocation: 18.2%",
+      "icon": "up"
+    },
+    {
+      "id": 5,
+      "date": "2024-12-15",
+      "type": "signal",
+      "title": "TLT allocation increased",
+      "description": "5.0% → 12.3%",
+      "icon": "up"
+    }
+  ],
+  "performance": [
+    {"date": "2024-01-31", "value": 52500, "totalReturn": 5.0},
+    {"date": "2024-02-29", "value": 55000, "totalReturn": 10.0},
+    {"date": "2024-03-31", "value": 58000, "totalReturn": 16.0},
+    {"date": "2024-04-30", "value": 56000, "totalReturn": 12.0},
+    {"date": "2024-05-31", "value": 60000, "totalReturn": 20.0},
+    {"date": "2024-06-30", "value": 62000, "totalReturn": 24.0},
+    {"date": "2024-07-31", "value": 65000, "totalReturn": 30.0},
+    {"date": "2024-08-31", "value": 63000, "totalReturn": 26.0},
+    {"date": "2024-09-30", "value": 68000, "totalReturn": 36.0},
+    {"date": "2024-10-31", "value": 72000, "totalReturn": 44.0},
+    {"date": "2024-11-30", "value": 75000, "totalReturn": 50.0},
+    {"date": "2024-12-31", "value": 78000, "totalReturn": 56.0}
+  ],
+  "summary": {
+    "totalReturn": 420.0,
+    "annualReturn": 38.5,
+    "sharpe": 1.41,
+    "maxDrawdown": -22.6,
+    "finalValue": 260000
+  },
+  "generatedAt": "2025-01-05T12:00:00Z"
+}
