@@ -2,7 +2,7 @@ name: Update Backtest Data
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, 'claude/*']
   schedule:
     # Run daily at 6 AM UTC (after market close)
     - cron: '0 6 * * *'

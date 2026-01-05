@@ -1,6 +1,8 @@
 name: Update Signals Data
 
 on:
+  push:
+    branches: [main, master, 'claude/*']
   schedule:
     # Run daily at 22:00 UTC (after US market close)
     - cron: '0 22 * * 1-5'
