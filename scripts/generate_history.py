@@ -36,9 +36,9 @@ def generate_history():
     print("GENERATING HISTORY FROM BACKTEST")
     print("=" * 60)
 
-    # Run backtest for last 2 years (enough history for the dashboard)
+    # Run backtest for last 5 years
     end_date = datetime.now()
-    start_date = end_date - timedelta(days=730)  # 2 years
+    start_date = end_date - timedelta(days=5 * 365)  # 5 years
 
     backtest = QuadrantPortfolioBacktest(
         start_date=start_date,

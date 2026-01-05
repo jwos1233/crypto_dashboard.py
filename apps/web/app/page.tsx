@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -9,7 +12,36 @@ import {
   ArrowRight,
 } from 'lucide-react';
 
+interface HistoryResponse {
+  summary: {
+    totalReturn: number;
+    annualReturn: number;
+    sharpe: number;
+    maxDrawdown: number;
+    finalValue: number;
+  };
+}
+
+async function fetchHistory(): Promise<HistoryResponse> {
+  const res = await fetch('/api/history');
+  if (!res.ok) throw new Error('Failed to fetch');
+  return res.json();
+}
+
 export default function LandingPage() {
+  const { data } = useQuery({
+    queryKey: ['history'],
+    queryFn: fetchHistory,
+  });
+
+  // Use data from API or fallback to placeholder while loading
+  const stats = data?.summary ?? {
+    totalReturn: 420,
+    annualReturn: 38.5,
+    sharpe: 1.41,
+    maxDrawdown: -22.6,
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       {/* Navigation */}
@@ -40,7 +72,7 @@ export default function LandingPage() {
         </h1>
         <p className="text-xl text-slate-400 mb-8 max-w-2xl mx-auto">
           Stop guessing. Get systematic, backtested signals that adapt to Growth and Inflation cycles.
-          420% backtested returns over 5 years.
+          {stats.totalReturn.toFixed(0)}% backtested returns over 5 years.
         </p>
         <div className="flex items-center justify-center gap-4">
           <Link href="/dashboard">
@@ -50,12 +82,12 @@ export default function LandingPage() {
           </Link>
         </div>
 
-        {/* Stats */}
+        {/* Stats - pulled from backtest results */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-16 max-w-4xl mx-auto">
-          <StatCard value="+420%" label="5yr Return" />
-          <StatCard value="1.41" label="Sharpe Ratio" />
-          <StatCard value="-22.6%" label="Max Drawdown" />
-          <StatCard value="54%" label="Win Rate" />
+          <StatCard value={`+${stats.totalReturn.toFixed(0)}%`} label="5yr Return" />
+          <StatCard value={stats.sharpe.toFixed(2)} label="Sharpe Ratio" />
+          <StatCard value={`${stats.maxDrawdown.toFixed(1)}%`} label="Max Drawdown" />
+          <StatCard value={`+${stats.annualReturn.toFixed(1)}%`} label="Annual Return" />
         </div>
       </section>
 
