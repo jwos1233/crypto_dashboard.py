@@ -44,9 +44,9 @@ export async function GET(request: Request) {
         allocation: cashAllocation,
         dollarAmount: cashAllocation * portfolioSize,
         signal: 'HOLD',
-        conviction: null,
+        conviction: '-',
         category: 'stable',
-        quadrant: null,
+        quadrant: '-',
       });
     }
 
