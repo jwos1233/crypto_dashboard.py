@@ -207,7 +207,8 @@ function calculateMomentum(data: HistoricalData[], days: number = 20): number {
 }
 
 function calculateVolatility(data: HistoricalData[], days: number = 30): number {
-  if (data.length < days + 1) return 0.2;
+  // Return 0 if insufficient data (like Python - will be filtered out)
+  if (data.length < days + 1) return 0;
 
   const returns: number[] = [];
   const recentData = data.slice(-days - 1);
@@ -219,13 +220,14 @@ function calculateVolatility(data: HistoricalData[], days: number = 30): number 
     }
   }
 
-  if (returns.length === 0) return 0.2;
+  if (returns.length === 0) return 0;
 
   const mean = returns.reduce((a, b) => a + b, 0) / returns.length;
   const variance = returns.reduce((sum, ret) => sum + Math.pow(ret - mean, 2), 0) / returns.length;
   const stdDev = Math.sqrt(variance);
 
-  return stdDev * Math.sqrt(252); // Annualized
+  // Annualized volatility: daily std * sqrt(252)
+  return stdDev * Math.sqrt(252);
 }
 
 function calculateEMA(data: HistoricalData[], period: number = 50): number {
@@ -344,11 +346,11 @@ export async function generateSignals(): Promise<GenerateSignalsResult> {
     // Apply EMA filter - STRICT like Python: only allocate if price > EMA
     for (const [ticker, volWeight] of Object.entries(volWeights)) {
       const tickerData = data.get(ticker)!;
+      const currentPrice = tickerData[tickerData.length - 1].close;
+      const ema = calculateEMA(tickerData, 50);
 
-      if (tickerData.length >= 50) {
-        const currentPrice = tickerData[tickerData.length - 1].close;
-        const ema = calculateEMA(tickerData, 50);
-
+      // Only apply filter if we have valid EMA (non-zero means we had enough data)
+      if (ema > 0 && currentPrice > 0) {
         if (currentPrice > ema) {
           // Pass EMA filter - add to weights
           weights[ticker] = (weights[ticker] || 0) + volWeight;
@@ -361,7 +363,7 @@ export async function generateSignals(): Promise<GenerateSignalsResult> {
           };
         }
       }
-      // If not enough data for EMA (< 50 days), skip entirely like Python
+      // If EMA is 0 (insufficient data), skip entirely like Python
     }
   }
 
