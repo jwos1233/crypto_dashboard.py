@@ -167,7 +167,8 @@ function calculateVolatility(data, days = 30) {
 }
 
 function calculateEMA(data, period = 50) {
-  if (data.length < period) return 0;
+  // Match pandas ewm() behavior - calculate from whatever data is available
+  if (data.length === 0) return 0;
   const multiplier = 2 / (period + 1);
   let ema = data[0].close;
   for (let i = 1; i < data.length; i++) {
@@ -219,11 +220,10 @@ async function main() {
     const quadLeverage = QUAD_LEVERAGE[quad] || 1.0;
     console.log(`\nProcessing ${quad} with leverage ${quadLeverage}x`);
 
-    // Get tickers with valid data only (like Python)
-    // CRITICAL: Need >= 50 days for EMA calculation (not 30!)
+    // Get tickers with valid data (matches Python: just check if data exists)
     const quadTickers = Object.keys(quadAssets).filter(ticker => {
       const tickerData = data.get(ticker);
-      return tickerData && tickerData.length >= 50;
+      return tickerData && tickerData.length > 0;
     });
 
     if (quadTickers.length === 0) continue;
@@ -247,14 +247,17 @@ async function main() {
       volWeights[ticker] = (vol / totalVol) * quadLeverage;
     }
 
-    // Apply EMA filter - STRICT like Python
+    // Apply EMA filter - matches Python behavior
     for (const [ticker, volWeight] of Object.entries(volWeights)) {
       const tickerData = data.get(ticker);
       const currentPrice = tickerData[tickerData.length - 1].close;
       const ema = calculateEMA(tickerData, 50);
 
-      // Only apply filter if we have valid EMA
-      if (ema > 0 && currentPrice > 0) {
+      // Check for valid values (like pd.notna in Python)
+      const priceValid = currentPrice > 0 && isFinite(currentPrice);
+      const emaValid = ema > 0 && isFinite(ema);
+
+      if (priceValid && emaValid) {
         const aboveEMA = currentPrice > ema;
         console.log(`${ticker}: price=${currentPrice.toFixed(2)}, EMA=${ema.toFixed(2)}, aboveEMA=${aboveEMA}`);
 
@@ -264,7 +267,6 @@ async function main() {
         }
         // If below EMA, don't add to weights (excluded)
       }
-      // If EMA is 0 (insufficient data), skip entirely
     }
   }
 
