@@ -82,7 +82,7 @@ const QUAD_LEVERAGE = {
   Q4: 1.0,
 };
 
-async function fetchHistoricalData(ticker, days = 100) {
+async function fetchHistoricalData(ticker, days = 150) {
   try {
     const endDate = new Date();
     const startDate = new Date();
@@ -126,7 +126,7 @@ async function fetchAllData() {
   for (let i = 0; i < tickers.length; i += 5) {
     const batch = tickers.slice(i, i + 5);
     const promises = batch.map(async (ticker) => {
-      const historicalData = await fetchHistoricalData(ticker, 100);
+      const historicalData = await fetchHistoricalData(ticker, 150);
       if (historicalData.length > 0) {
         data.set(ticker, historicalData);
       }
@@ -220,9 +220,10 @@ async function main() {
     console.log(`\nProcessing ${quad} with leverage ${quadLeverage}x`);
 
     // Get tickers with valid data only (like Python)
+    // CRITICAL: Need >= 50 days for EMA calculation (not 30!)
     const quadTickers = Object.keys(quadAssets).filter(ticker => {
       const tickerData = data.get(ticker);
-      return tickerData && tickerData.length > 30;
+      return tickerData && tickerData.length >= 50;
     });
 
     if (quadTickers.length === 0) continue;

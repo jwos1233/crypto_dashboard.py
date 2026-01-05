@@ -126,7 +126,7 @@ let dataCache: {
 
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-async function fetchHistoricalData(ticker: string, days: number = 100): Promise<HistoricalData[]> {
+async function fetchHistoricalData(ticker: string, days: number = 150): Promise<HistoricalData[]> {
   try {
     const endDate = new Date();
     const startDate = new Date();
@@ -176,7 +176,7 @@ async function fetchAllData(): Promise<Map<string, HistoricalData[]>> {
   for (let i = 0; i < tickers.length; i += batchSize) {
     const batch = tickers.slice(i, i + batchSize);
     const promises = batch.map(async (ticker) => {
-      const historicalData = await fetchHistoricalData(ticker, 100);
+      const historicalData = await fetchHistoricalData(ticker, 150);
       if (historicalData.length > 0) {
         data.set(ticker, historicalData);
       }
@@ -316,10 +316,12 @@ export async function generateSignals(): Promise<GenerateSignalsResult> {
     // Get leverage for this specific quadrant (Q1=1.5x, others=1.0x)
     const quadLeverage = QUAD_LEVERAGE[quad] || 1.0;
 
-    // Get tickers that have valid data (like Python: only include if we have data)
+    // Get tickers that have valid data
+    // CRITICAL: Need >= 50 days for EMA calculation (not 30!)
+    // Python requires sufficient data for both volatility AND EMA
     const quadTickers = Object.keys(quadAssets).filter(ticker => {
       const tickerData = data.get(ticker);
-      return tickerData && tickerData.length > 30;
+      return tickerData && tickerData.length >= 50;
     });
 
     if (quadTickers.length === 0) continue;
