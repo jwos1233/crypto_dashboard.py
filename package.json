@@ -1,0 +1,21 @@
+{
+  "name": "crypto-overlay-saas",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=apps/web",
+    "build": "npm run build --workspace=apps/web",
+    "start": "npm run start --workspace=apps/web",
+    "lint": "npm run lint --workspace=apps/web",
+    "db:push": "npm run db:push --workspace=apps/web",
+    "db:generate": "npm run db:generate --workspace=apps/web",
+    "signals:publish": "python scripts/publish_signals.py"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  }
+}
