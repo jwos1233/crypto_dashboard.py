@@ -1,5 +1,8 @@
 import yahooFinance from 'yahoo-finance2';
 
+// Suppress yahoo-finance2 validation warnings
+yahooFinance.setGlobalConfig({ validation: { logErrors: false } });
+
 // Quadrant allocations - maps quadrant to assets and their base weights
 export const QUAD_ALLOCATIONS: Record<string, Record<string, number>> = {
   Q1: {
@@ -15,7 +18,6 @@ export const QUAD_ALLOCATIONS: Record<string, Record<string, number>> = {
   Q2: {
     XLE: 0.07,
     DBC: 0.07,
-    GCC: 0.07,
     XLF: 0.10,
     XLI: 0.10,
     XLB: 0.10,
@@ -48,9 +50,9 @@ export const QUAD_ALLOCATIONS: Record<string, Record<string, number>> = {
 
 // Quadrant indicators for momentum scoring
 export const QUAD_INDICATORS: Record<string, string[]> = {
-  Q1: ['QQQ', 'VUG', 'IWM'],
-  Q2: ['XLE', 'DBC', 'GCC'],
-  Q3: ['GLD', 'DBC', 'DBA'],
+  Q1: ['QQQ', 'IWM'],
+  Q2: ['XLE', 'DBC'],
+  Q3: ['GLD', 'DBC'],
   Q4: ['TLT', 'XLU'],
 };
 
@@ -110,10 +112,15 @@ async function fetchHistoricalData(ticker: string, days: number = 100): Promise<
       interval: '1d',
     });
 
+    if (!result || result.length === 0) {
+      console.log(`No data returned for ${ticker}`);
+      return [];
+    }
+
     return result.map((item) => ({
       date: item.date,
-      close: item.close,
-    }));
+      close: item.close ?? item.adjClose ?? 0,
+    })).filter(item => item.close > 0);
   } catch (error) {
     console.error(`Error fetching ${ticker}:`, error);
     return [];
@@ -123,8 +130,11 @@ async function fetchHistoricalData(ticker: string, days: number = 100): Promise<
 async function fetchAllData(): Promise<Map<string, HistoricalData[]>> {
   // Check cache
   if (dataCache && Date.now() - dataCache.timestamp < CACHE_TTL) {
+    console.log('Using cached data');
     return dataCache.data;
   }
+
+  console.log('Fetching fresh market data...');
 
   // Get all unique tickers
   const allTickers = new Set<string>();
@@ -135,23 +145,29 @@ async function fetchAllData(): Promise<Map<string, HistoricalData[]>> {
     indicators.forEach((ticker) => allTickers.add(ticker));
   });
 
-  // Add VUG for Q1 indicator
-  allTickers.add('VUG');
-
   const data = new Map<string, HistoricalData[]>();
 
-  // Fetch all tickers in parallel
-  const fetchPromises = Array.from(allTickers).map(async (ticker) => {
-    const historicalData = await fetchHistoricalData(ticker, 100);
-    if (historicalData.length > 0) {
-      data.set(ticker, historicalData);
+  // Fetch tickers sequentially to avoid rate limits
+  for (const ticker of Array.from(allTickers)) {
+    try {
+      const historicalData = await fetchHistoricalData(ticker, 100);
+      if (historicalData.length > 0) {
+        data.set(ticker, historicalData);
+        console.log(`Loaded ${ticker}: ${historicalData.length} days`);
+      }
+    } catch (e) {
+      console.error(`Failed to load ${ticker}`);
     }
-  });
+    // Small delay to avoid rate limiting
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
 
-  await Promise.all(fetchPromises);
+  console.log(`Total tickers loaded: ${data.size}`);
 
-  // Update cache
-  dataCache = { data, timestamp: Date.now() };
+  // Update cache if we got data
+  if (data.size > 0) {
+    dataCache = { data, timestamp: Date.now() };
+  }
 
   return data;
 }
@@ -162,32 +178,24 @@ function calculateMomentum(data: HistoricalData[], days: number = 20): number {
   const currentPrice = data[data.length - 1].close;
   const pastPrice = data[data.length - 1 - days].close;
 
+  if (pastPrice === 0) return 0;
   return ((currentPrice - pastPrice) / pastPrice) * 100;
 }
 
-function calculateEMA(data: HistoricalData[], period: number = 50): number {
-  if (data.length < period) return 0;
-
-  const multiplier = 2 / (period + 1);
-  let ema = data[0].close;
-
-  for (let i = 1; i < data.length; i++) {
-    ema = (data[i].close - ema) * multiplier + ema;
-  }
-
-  return ema;
-}
-
 function calculateVolatility(data: HistoricalData[], days: number = 30): number {
-  if (data.length < days + 1) return 0;
+  if (data.length < days + 1) return 0.2; // Default volatility if not enough data
 
   const returns: number[] = [];
   const recentData = data.slice(-days - 1);
 
   for (let i = 1; i < recentData.length; i++) {
-    const ret = (recentData[i].close - recentData[i - 1].close) / recentData[i - 1].close;
-    returns.push(ret);
+    if (recentData[i - 1].close > 0) {
+      const ret = (recentData[i].close - recentData[i - 1].close) / recentData[i - 1].close;
+      returns.push(ret);
+    }
   }
+
+  if (returns.length === 0) return 0.2;
 
   const mean = returns.reduce((a, b) => a + b, 0) / returns.length;
   const variance = returns.reduce((sum, ret) => sum + Math.pow(ret - mean, 2), 0) / returns.length;
@@ -198,7 +206,7 @@ function calculateVolatility(data: HistoricalData[], days: number = 30): number 
 
 export async function calculateQuadrantScores(): Promise<QuadrantScores> {
   const data = await fetchAllData();
-  const scores: QuadrantScores = {};
+  const scores: QuadrantScores = { Q1: 0, Q2: 0, Q3: 0, Q4: 0 };
 
   for (const [quad, indicators] of Object.entries(QUAD_INDICATORS)) {
     const momentums: number[] = [];
@@ -216,6 +224,7 @@ export async function calculateQuadrantScores(): Promise<QuadrantScores> {
       : 0;
   }
 
+  console.log('Quadrant scores:', scores);
   return scores;
 }
 
@@ -228,13 +237,16 @@ export async function getTopQuadrants(): Promise<[string, string]> {
 export async function generateSignals(): Promise<{ regime: RegimeData; signals: Signal[] }> {
   const data = await fetchAllData();
   const scores = await calculateQuadrantScores();
-  const [top1, top2] = await getTopQuadrants();
+
+  // Sort to get top quadrants
+  const sortedQuads = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+  const top1 = sortedQuads[0][0];
+  const top2 = sortedQuads[1][0];
 
   const info = QUADRANT_INFO[top1];
 
   // Calculate confidence based on score spread
-  const sortedScores = Object.values(scores).sort((a, b) => b - a);
-  const scoreDiff = Math.abs(sortedScores[0] - sortedScores[1]);
+  const scoreDiff = Math.abs(sortedQuads[0][1] - sortedQuads[1][1]);
   const confidence = Math.min(0.95, 0.5 + scoreDiff / 20);
 
   const regime: RegimeData = {
@@ -253,38 +265,33 @@ export async function generateSignals(): Promise<{ regime: RegimeData; signals: 
 
   for (const quad of [top1, top2]) {
     const quadAssets = QUAD_ALLOCATIONS[quad];
+    if (!quadAssets) continue;
+
     const quadVols: Record<string, number> = {};
 
     // Calculate volatilities for assets in this quad
     for (const ticker of Object.keys(quadAssets)) {
       const tickerData = data.get(ticker);
-      if (tickerData && tickerData.length > 30) {
-        const vol = calculateVolatility(tickerData, 30);
-        if (vol > 0) {
-          quadVols[ticker] = vol;
-        }
+      const vol = tickerData && tickerData.length > 10
+        ? calculateVolatility(tickerData, 30)
+        : 0.2; // Default volatility
+
+      if (vol > 0) {
+        quadVols[ticker] = vol;
       }
     }
 
-    // Apply volatility weighting
+    // Apply volatility weighting (skip EMA filter for now)
     const totalVol = Object.values(quadVols).reduce((a, b) => a + b, 0);
     if (totalVol > 0) {
       for (const [ticker, vol] of Object.entries(quadVols)) {
         const volWeight = (vol / totalVol) * BASE_LEVERAGE;
-
-        // Apply EMA filter
-        const tickerData = data.get(ticker);
-        if (tickerData && tickerData.length > 50) {
-          const currentPrice = tickerData[tickerData.length - 1].close;
-          const ema = calculateEMA(tickerData, 50);
-
-          if (currentPrice > ema) {
-            weights[ticker] = (weights[ticker] || 0) + volWeight;
-          }
-        }
+        weights[ticker] = (weights[ticker] || 0) + volWeight;
       }
     }
   }
+
+  console.log('Calculated weights:', Object.keys(weights).length, 'positions');
 
   // Limit to top 10 positions
   const sortedWeights = Object.entries(weights)
@@ -308,13 +315,15 @@ export async function generateSignals(): Promise<{ regime: RegimeData; signals: 
 
     return {
       asset: ticker,
-      signal: normalizedWeight >= 0.05 ? 'BULLISH' : 'NEUTRAL',
+      signal: normalizedWeight >= 0.05 ? 'BULLISH' as const : 'NEUTRAL' as const,
       targetAllocation: Math.round(normalizedWeight * 10000) / 10000,
-      conviction: normalizedWeight >= 0.15 ? 'high' : normalizedWeight >= 0.08 ? 'medium' : 'low',
+      conviction: normalizedWeight >= 0.15 ? 'high' as const : normalizedWeight >= 0.08 ? 'medium' as const : 'low' as const,
       category: getAssetCategory(ticker),
       quadrant: assetQuad,
     };
   });
+
+  console.log('Generated signals:', signals.length);
 
   return { regime, signals };
 }
