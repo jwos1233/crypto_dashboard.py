@@ -264,7 +264,20 @@ export async function calculateQuadrantScores(): Promise<QuadrantScores> {
   return scores;
 }
 
-export async function generateSignals(): Promise<{ regime: RegimeData; signals: Signal[] }> {
+interface ExcludedAsset {
+  price: number;
+  ema: number;
+  wouldBeWeight: number;
+}
+
+interface GenerateSignalsResult {
+  regime: RegimeData;
+  signals: Signal[];
+  totalLeverage: number;
+  excludedBelowEma: Record<string, ExcludedAsset>;
+}
+
+export async function generateSignals(): Promise<GenerateSignalsResult> {
   const data = await fetchAllData();
   const scores = await calculateQuadrantScores();
 
@@ -292,6 +305,7 @@ export async function generateSignals(): Promise<{ regime: RegimeData; signals: 
   // Calculate target weights for top 2 quadrants
   // Using volatility chasing like the Python code
   const weights: Record<string, number> = {};
+  const excludedBelowEma: Record<string, { price: number; ema: number; wouldBeWeight: number }> = {};
 
   for (const quad of [top1, top2]) {
     const quadAssets = QUAD_ALLOCATIONS[quad];
@@ -300,80 +314,105 @@ export async function generateSignals(): Promise<{ regime: RegimeData; signals: 
     // Get leverage for this specific quadrant (Q1=1.5x, others=1.0x)
     const quadLeverage = QUAD_LEVERAGE[quad] || 1.0;
 
-    const quadVols: Record<string, number> = {};
-
-    // Calculate volatilities for assets in this quad
-    for (const ticker of Object.keys(quadAssets)) {
+    // Get tickers that have valid data (like Python: only include if we have data)
+    const quadTickers = Object.keys(quadAssets).filter(ticker => {
       const tickerData = data.get(ticker);
-      if (tickerData && tickerData.length > 30) {
-        const vol = calculateVolatility(tickerData, 30);
-        if (vol > 0) {
-          quadVols[ticker] = vol;
-        }
-      } else {
-        // Use default volatility if no data
-        quadVols[ticker] = 0.2;
+      return tickerData && tickerData.length > 30;
+    });
+
+    if (quadTickers.length === 0) continue;
+
+    // Calculate volatilities for assets with valid data only
+    const quadVols: Record<string, number> = {};
+    for (const ticker of quadTickers) {
+      const tickerData = data.get(ticker)!;
+      const vol = calculateVolatility(tickerData, 30);
+      if (vol > 0) {
+        quadVols[ticker] = vol;
       }
     }
 
-    // Apply volatility weighting (volatility chasing - higher vol = higher weight)
+    if (Object.keys(quadVols).length === 0) continue;
+
+    // Volatility chasing weights
     const totalVol = Object.values(quadVols).reduce((a, b) => a + b, 0);
-    if (totalVol > 0) {
-      for (const [ticker, vol] of Object.entries(quadVols)) {
-        const volWeight = (vol / totalVol) * quadLeverage;
+    const volWeights: Record<string, number> = {};
+    for (const [ticker, vol] of Object.entries(quadVols)) {
+      volWeights[ticker] = (vol / totalVol) * quadLeverage;
+    }
 
-        // Apply EMA filter - only allocate if price > EMA
-        const tickerData = data.get(ticker);
-        if (tickerData && tickerData.length > 50) {
-          const currentPrice = tickerData[tickerData.length - 1].close;
-          const ema = calculateEMA(tickerData, 50);
+    // Apply EMA filter - STRICT like Python: only allocate if price > EMA
+    for (const [ticker, volWeight] of Object.entries(volWeights)) {
+      const tickerData = data.get(ticker)!;
 
-          if (currentPrice > ema) {
-            weights[ticker] = (weights[ticker] || 0) + volWeight;
-          }
-        } else {
-          // If no data for EMA, still include with weight
+      if (tickerData.length >= 50) {
+        const currentPrice = tickerData[tickerData.length - 1].close;
+        const ema = calculateEMA(tickerData, 50);
+
+        if (currentPrice > ema) {
+          // Pass EMA filter - add to weights
           weights[ticker] = (weights[ticker] || 0) + volWeight;
+        } else {
+          // Track excluded assets (below EMA)
+          excludedBelowEma[ticker] = {
+            price: currentPrice,
+            ema: ema,
+            wouldBeWeight: volWeight,
+          };
         }
       }
+      // If not enough data for EMA (< 50 days), skip entirely like Python
     }
   }
 
-  // Limit to top 10 positions (max_positions=10 in Python)
-  const sortedWeights = Object.entries(weights)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10);
+  // Filter to top N positions if max_positions is set (like Python)
+  const MAX_POSITIONS = 10;
+  let finalWeights: Record<string, number> = { ...weights };
 
-  // Re-normalize to maintain total leverage
-  const originalTotal = Object.values(weights).reduce((a, b) => a + b, 0);
-  const newTotal = sortedWeights.reduce((sum, [, w]) => sum + w, 0);
-  const scaleFactor = newTotal > 0 ? originalTotal / newTotal : 1;
+  if (Object.keys(finalWeights).length > MAX_POSITIONS) {
+    // Sort by weight and keep top N
+    const sortedWeights = Object.entries(finalWeights)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, MAX_POSITIONS);
+    const topNWeights = Object.fromEntries(sortedWeights);
 
-  const signals: Signal[] = sortedWeights.map(([ticker, weight]) => {
-    const scaledWeight = weight * scaleFactor;
-    const totalLeverage = sortedWeights.reduce((sum, [, w]) => sum + w * scaleFactor, 0);
-    const normalizedWeight = totalLeverage > 0 ? scaledWeight / totalLeverage : 0;
+    // Re-normalize to maintain total leverage
+    const originalTotal = Object.values(finalWeights).reduce((a, b) => a + b, 0);
+    const newTotal = Object.values(topNWeights).reduce((a, b) => a + b, 0);
+    const scaleFactor = newTotal > 0 ? originalTotal / newTotal : 1;
 
-    // Determine which quadrant this asset belongs to
-    let assetQuad = 'unknown';
+    finalWeights = {};
+    for (const [ticker, weight] of Object.entries(topNWeights)) {
+      finalWeights[ticker] = weight * scaleFactor;
+    }
+  }
+
+  // Calculate total leverage
+  const totalLeverage = Object.values(finalWeights).reduce((a, b) => a + b, 0);
+
+  // Convert to signals array (sorted by weight, largest first)
+  const sortedFinalWeights = Object.entries(finalWeights).sort((a, b) => b[1] - a[1]);
+
+  const signals: Signal[] = sortedFinalWeights.map(([ticker, weight]) => {
+    // Determine which quadrant(s) this asset belongs to
+    const quads: string[] = [];
     for (const [quad, assets] of Object.entries(QUAD_ALLOCATIONS)) {
       if (ticker in assets) {
-        assetQuad = quad;
-        break;
+        quads.push(quad);
       }
     }
 
     return {
       asset: ticker,
-      signal: scaledWeight >= 0.05 ? 'BULLISH' as const : 'NEUTRAL' as const,
-      targetAllocation: Math.round(scaledWeight * 10000) / 10000,
-      conviction: normalizedWeight >= 0.15 ? 'high' as const : normalizedWeight >= 0.08 ? 'medium' as const : 'low' as const,
+      signal: weight >= 0.05 ? 'BULLISH' as const : 'NEUTRAL' as const,
+      targetAllocation: Math.round(weight * 10000) / 10000,
+      conviction: weight >= 0.15 ? 'high' as const : weight >= 0.08 ? 'medium' as const : 'low' as const,
       category: getAssetCategory(ticker),
-      quadrant: assetQuad,
+      quadrant: quads.join('+') || 'unknown',
     };
   });
 
-  return { regime, signals };
+  return { regime, signals, totalLeverage, excludedBelowEma };
 }
 
 function getAssetCategory(ticker: string): string {
