@@ -6,13 +6,7 @@ export const revalidate = 0;
 
 export async function GET() {
   try {
-    const { signals, regime } = await generateSignals();
-
-    // Calculate totals
-    const totalAllocation = signals.reduce(
-      (sum, s) => sum + (s.targetAllocation || 0),
-      0
-    );
+    const { signals, regime, totalLeverage, excludedBelowEma } = await generateSignals();
 
     const response = {
       signals: signals.map((signal) => ({
@@ -26,12 +20,17 @@ export async function GET() {
       meta: {
         tier: 'free',
         totalSignals: signals.length,
-        totalAllocation,
-        cashAllocation: Math.max(0, 1 - totalAllocation),
+        totalLeverage: Math.round(totalLeverage * 100) / 100,
         timestamp: regime.timestamp,
-        isDelayed: false,
-        delayHours: 0,
+        primaryQuadrant: regime.primaryQuadrant,
+        secondaryQuadrant: regime.secondaryQuadrant,
       },
+      excludedBelowEma: Object.entries(excludedBelowEma).map(([ticker, info]) => ({
+        ticker,
+        price: info.price,
+        ema: info.ema,
+        pctBelowEma: ((info.price - info.ema) / info.ema) * 100,
+      })),
     };
 
     return NextResponse.json(response);

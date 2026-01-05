@@ -10,9 +10,9 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const portfolioSize = parseFloat(searchParams.get('size') || '10000');
 
-    const { signals, regime } = await generateSignals();
+    const { signals, regime, totalLeverage, excludedBelowEma } = await generateSignals();
 
-    // Build portfolio positions
+    // Build portfolio positions (already sorted by weight from generateSignals)
     const positions = signals
       .filter((s) => s.targetAllocation > 0)
       .map((signal) => {
@@ -36,32 +36,23 @@ export async function GET(request: Request) {
       categoryAllocations[cat] = (categoryAllocations[cat] || 0) + pos.allocation;
     });
 
-    // Calculate cash position
-    const totalAllocated = positions.reduce((sum, p) => sum + p.allocation, 0);
-    const cashAllocation = Math.max(0, 1 - totalAllocated);
-
-    if (cashAllocation > 0) {
-      positions.push({
-        asset: 'USDC',
-        allocation: cashAllocation,
-        dollarAmount: cashAllocation * portfolioSize,
-        signal: 'NEUTRAL' as const,
-        conviction: 'low' as const,
-        category: 'stable',
-        quadrant: '-',
-      });
-    }
-
     const response = {
       portfolioSize,
-      totalAllocated,
-      cashAllocation,
+      totalLeverage: Math.round(totalLeverage * 100) / 100,
+      numPositions: positions.length,
       positions,
       categoryAllocations,
       regime: {
-        quadrant: regime.primaryQuadrant,
+        primaryQuadrant: regime.primaryQuadrant,
         secondaryQuadrant: regime.secondaryQuadrant,
+        quadrantScores: regime.quadrantScores,
       },
+      excludedBelowEma: Object.entries(excludedBelowEma).map(([ticker, info]) => ({
+        ticker,
+        price: Math.round(info.price * 100) / 100,
+        ema: Math.round(info.ema * 100) / 100,
+        pctBelowEma: Math.round(((info.price - info.ema) / info.ema) * 10000) / 100,
+      })),
       timestamp: regime.timestamp,
     };
 
