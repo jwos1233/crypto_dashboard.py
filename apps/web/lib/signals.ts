@@ -3,57 +3,75 @@ import yahooFinance from 'yahoo-finance2';
 // Suppress yahoo-finance2 validation warnings
 yahooFinance.setGlobalConfig({ validation: { logErrors: false } });
 
-// Quadrant allocations - maps quadrant to assets and their base weights
+// EXACT copy from config.py - QUAD_ALLOCATIONS
 export const QUAD_ALLOCATIONS: Record<string, Record<string, number>> = {
   Q1: {
-    QQQ: 0.24,
-    ARKK: 0.18,
-    IWM: 0.09,
-    IBIT: 0.06,
-    XLC: 0.075,
-    XLY: 0.075,
-    TLT: 0.05,
-    LQD: 0.05,
+    QQQ: 0.60 * 0.40,      // 40% of 60% Growth
+    ARKK: 0.60 * 0.30,     // 30% of 60% Growth
+    IWM: 0.60 * 0.15,      // 15% of 60% Growth (Small Caps)
+    IBIT: 0.60 * 0.10,     // 10% of 60% Growth (Bitcoin ETF)
+    ETHA: 0.60 * 0.05,     // 5% of 60% Growth (Ethereum ETF)
+    XLC: 0.15 * 0.50,      // 50% of 15% Consumer Disc
+    XLY: 0.15 * 0.50,      // 50% of 15% Consumer Disc
+    TLT: 0.10 * 0.50,      // 50% of 10% Bonds
+    LQD: 0.10 * 0.50,      // 50% of 10% Bonds
   },
   Q2: {
-    XLE: 0.07,
-    DBC: 0.07,
-    XLF: 0.10,
-    XLI: 0.10,
-    XLB: 0.10,
-    XOP: 0.05,
-    VNQ: 0.05,
-    VTV: 0.05,
+    XLE: 0.35 * 0.20,      // 20% of 35% Commodities
+    DBC: 0.35 * 0.20,      // 20% of 35% Commodities
+    GCC: 0.35 * 0.20,      // 20% of 35% Commodities
+    LIT: 0.35 * 0.10,      // 10% of 35% Commodities (Lithium)
+    AA: 0.35 * 0.10,       // 10% of 35% Commodities (Alcoa)
+    PALL: 0.35 * 0.10,     // 10% of 35% Commodities (Palladium)
+    VALT: 0.35 * 0.10,     // 10% of 35% Commodities (Treasury collateral)
+    XLF: 0.30 * 0.333,     // 33% of 30% Cyclicals
+    XLI: 0.30 * 0.333,     // 33% of 30% Cyclicals
+    XLB: 0.30 * 0.334,     // 34% of 30% Cyclicals
+    XOP: 0.15 * 0.333,     // 33% of 15% Energy
+    FCG: 0.15 * 0.333,     // 33% of 15% Energy
+    USO: 0.15 * 0.334,     // 34% of 15% Energy (Crude Oil)
+    VNQ: 0.10 * 0.50,      // 50% of 10% Real Assets
+    PAVE: 0.10 * 0.50,     // 50% of 10% Real Assets
+    VTV: 0.10 * 0.50,      // 50% of 10% Value
+    IWD: 0.10 * 0.50,      // 50% of 10% Value
   },
   Q3: {
-    FCG: 0.083,
-    XLE: 0.083,
-    XOP: 0.084,
-    GLD: 0.036,
-    DBC: 0.036,
-    DBA: 0.036,
-    TIP: 0.10,
-    VNQ: 0.05,
-    XLV: 0.05,
-    XLU: 0.05,
+    FCG: 0.25 * 0.333,     // 33% of 25% Energy
+    XLE: 0.25 * 0.333,     // 33% of 25% Energy
+    XOP: 0.25 * 0.334,     // 34% of 25% Energy
+    GLD: 0.30 * 0.12,      // 12% of 30% Commodities
+    DBC: 0.30 * 0.12,      // 12% of 30% Commodities
+    DBA: 0.30 * 0.12,      // 12% of 30% Commodities
+    REMX: 0.30 * 0.12,     // 12% of 30% Commodities
+    URA: 0.30 * 0.12,      // 12% of 30% Commodities (Uranium)
+    LIT: 0.30 * 0.10,      // 10% of 30% Commodities (Lithium)
+    AA: 0.30 * 0.10,       // 10% of 30% Commodities (Alcoa)
+    PALL: 0.30 * 0.10,     // 10% of 30% Commodities (Palladium)
+    VALT: 0.30 * 0.10,     // 10% of 30% Commodities (Treasury collateral)
+    TIP: 0.20 * 0.50,      // 50% of 20% TIPS
+    VTIP: 0.20 * 0.50,     // 50% of 20% TIPS
+    VNQ: 0.10 * 0.50,      // 50% of 10% Real Assets
+    PAVE: 0.10 * 0.50,     // 50% of 10% Real Assets
+    XLV: 0.15 * 0.333,     // 33% of 15% Equities
+    XLU: 0.15 * 0.333,     // 33% of 15% Equities
   },
   Q4: {
-    VGLT: 0.25,
-    IEF: 0.25,
-    LQD: 0.10,
-    MUB: 0.10,
-    XLU: 0.0375,
-    XLP: 0.0375,
-    XLV: 0.0375,
+    VGLT: 0.50 * 0.50,     // 50% of 50% Long Duration
+    IEF: 0.50 * 0.50,      // 50% of 50% Long Duration
+    LQD: 0.20 * 0.50,      // 50% of 20% IG Credit
+    MUB: 0.20 * 0.50,      // 50% of 20% IG Credit
+    XLU: 0.15 * 0.25,      // 25% of 15% Defensive
+    XLP: 0.15 * 0.25,      // 25% of 15% Defensive
+    XLV: 0.15 * 0.25,      // 25% of 15% Defensive
   },
 };
 
-// Quadrant indicators for momentum scoring
+// EXACT copy from config.py - QUAD_INDICATORS
 export const QUAD_INDICATORS: Record<string, string[]> = {
-  Q1: ['QQQ', 'IWM'],
-  Q2: ['XLE', 'DBC'],
-  Q3: ['GLD', 'DBC'],
-  Q4: ['TLT', 'XLU'],
+  Q1: ['QQQ', 'VUG', 'IWM', 'BTC-USD'],
+  Q2: ['XLE', 'DBC', 'GCC', 'LIT'],
+  Q3: ['GLD', 'DBC', 'DBA', 'REMX', 'URA', 'LIT'],
+  Q4: ['TLT', 'XLU', 'VIXY'],
 };
 
 // Quadrant info
@@ -113,7 +131,6 @@ async function fetchHistoricalData(ticker: string, days: number = 100): Promise<
     });
 
     if (!result || result.length === 0) {
-      console.log(`No data returned for ${ticker}`);
       return [];
     }
 
@@ -130,11 +147,8 @@ async function fetchHistoricalData(ticker: string, days: number = 100): Promise<
 async function fetchAllData(): Promise<Map<string, HistoricalData[]>> {
   // Check cache
   if (dataCache && Date.now() - dataCache.timestamp < CACHE_TTL) {
-    console.log('Using cached data');
     return dataCache.data;
   }
-
-  console.log('Fetching fresh market data...');
 
   // Get all unique tickers
   const allTickers = new Set<string>();
@@ -147,22 +161,24 @@ async function fetchAllData(): Promise<Map<string, HistoricalData[]>> {
 
   const data = new Map<string, HistoricalData[]>();
 
-  // Fetch tickers sequentially to avoid rate limits
-  for (const ticker of Array.from(allTickers)) {
-    try {
+  // Fetch tickers in parallel batches to speed up
+  const tickers = Array.from(allTickers);
+  const batchSize = 5;
+
+  for (let i = 0; i < tickers.length; i += batchSize) {
+    const batch = tickers.slice(i, i + batchSize);
+    const promises = batch.map(async (ticker) => {
       const historicalData = await fetchHistoricalData(ticker, 100);
       if (historicalData.length > 0) {
         data.set(ticker, historicalData);
-        console.log(`Loaded ${ticker}: ${historicalData.length} days`);
       }
-    } catch (e) {
-      console.error(`Failed to load ${ticker}`);
+    });
+    await Promise.all(promises);
+    // Small delay between batches
+    if (i + batchSize < tickers.length) {
+      await new Promise(resolve => setTimeout(resolve, 200));
     }
-    // Small delay to avoid rate limiting
-    await new Promise(resolve => setTimeout(resolve, 100));
   }
-
-  console.log(`Total tickers loaded: ${data.size}`);
 
   // Update cache if we got data
   if (data.size > 0) {
@@ -183,7 +199,7 @@ function calculateMomentum(data: HistoricalData[], days: number = 20): number {
 }
 
 function calculateVolatility(data: HistoricalData[], days: number = 30): number {
-  if (data.length < days + 1) return 0.2; // Default volatility if not enough data
+  if (data.length < days + 1) return 0.2;
 
   const returns: number[] = [];
   const recentData = data.slice(-days - 1);
@@ -202,6 +218,19 @@ function calculateVolatility(data: HistoricalData[], days: number = 30): number 
   const stdDev = Math.sqrt(variance);
 
   return stdDev * Math.sqrt(252); // Annualized
+}
+
+function calculateEMA(data: HistoricalData[], period: number = 50): number {
+  if (data.length < period) return 0;
+
+  const multiplier = 2 / (period + 1);
+  let ema = data[0].close;
+
+  for (let i = 1; i < data.length; i++) {
+    ema = (data[i].close - ema) * multiplier + ema;
+  }
+
+  return ema;
 }
 
 export async function calculateQuadrantScores(): Promise<QuadrantScores> {
@@ -224,14 +253,7 @@ export async function calculateQuadrantScores(): Promise<QuadrantScores> {
       : 0;
   }
 
-  console.log('Quadrant scores:', scores);
   return scores;
-}
-
-export async function getTopQuadrants(): Promise<[string, string]> {
-  const scores = await calculateQuadrantScores();
-  const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
-  return [sorted[0][0], sorted[1][0]];
 }
 
 export async function generateSignals(): Promise<{ regime: RegimeData; signals: Signal[] }> {
@@ -260,8 +282,9 @@ export async function generateSignals(): Promise<{ regime: RegimeData; signals: 
   };
 
   // Calculate target weights for top 2 quadrants
+  // Using volatility chasing like the Python code
   const weights: Record<string, number> = {};
-  const BASE_LEVERAGE = 1.5;
+  const BASE_LEVERAGE = 1.5; // Same as Python
 
   for (const quad of [top1, top2]) {
     const quadAssets = QUAD_ALLOCATIONS[quad];
@@ -272,37 +295,54 @@ export async function generateSignals(): Promise<{ regime: RegimeData; signals: 
     // Calculate volatilities for assets in this quad
     for (const ticker of Object.keys(quadAssets)) {
       const tickerData = data.get(ticker);
-      const vol = tickerData && tickerData.length > 10
-        ? calculateVolatility(tickerData, 30)
-        : 0.2; // Default volatility
-
-      if (vol > 0) {
-        quadVols[ticker] = vol;
+      if (tickerData && tickerData.length > 30) {
+        const vol = calculateVolatility(tickerData, 30);
+        if (vol > 0) {
+          quadVols[ticker] = vol;
+        }
+      } else {
+        // Use default volatility if no data
+        quadVols[ticker] = 0.2;
       }
     }
 
-    // Apply volatility weighting (skip EMA filter for now)
+    // Apply volatility weighting (volatility chasing - higher vol = higher weight)
     const totalVol = Object.values(quadVols).reduce((a, b) => a + b, 0);
     if (totalVol > 0) {
       for (const [ticker, vol] of Object.entries(quadVols)) {
         const volWeight = (vol / totalVol) * BASE_LEVERAGE;
-        weights[ticker] = (weights[ticker] || 0) + volWeight;
+
+        // Apply EMA filter - only allocate if price > EMA
+        const tickerData = data.get(ticker);
+        if (tickerData && tickerData.length > 50) {
+          const currentPrice = tickerData[tickerData.length - 1].close;
+          const ema = calculateEMA(tickerData, 50);
+
+          if (currentPrice > ema) {
+            weights[ticker] = (weights[ticker] || 0) + volWeight;
+          }
+        } else {
+          // If no data for EMA, still include with weight
+          weights[ticker] = (weights[ticker] || 0) + volWeight;
+        }
       }
     }
   }
 
-  console.log('Calculated weights:', Object.keys(weights).length, 'positions');
-
-  // Limit to top 10 positions
+  // Limit to top 10 positions (max_positions=10 in Python)
   const sortedWeights = Object.entries(weights)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10);
 
-  // Normalize weights
-  const totalWeight = sortedWeights.reduce((sum, [, w]) => sum + w, 0);
+  // Re-normalize to maintain total leverage
+  const originalTotal = Object.values(weights).reduce((a, b) => a + b, 0);
+  const newTotal = sortedWeights.reduce((sum, [, w]) => sum + w, 0);
+  const scaleFactor = newTotal > 0 ? originalTotal / newTotal : 1;
 
   const signals: Signal[] = sortedWeights.map(([ticker, weight]) => {
-    const normalizedWeight = totalWeight > 0 ? weight / totalWeight : 0;
+    const scaledWeight = weight * scaleFactor;
+    const totalLeverage = sortedWeights.reduce((sum, [, w]) => sum + w * scaleFactor, 0);
+    const normalizedWeight = totalLeverage > 0 ? scaledWeight / totalLeverage : 0;
 
     // Determine which quadrant this asset belongs to
     let assetQuad = 'unknown';
@@ -315,15 +355,13 @@ export async function generateSignals(): Promise<{ regime: RegimeData; signals: 
 
     return {
       asset: ticker,
-      signal: normalizedWeight >= 0.05 ? 'BULLISH' as const : 'NEUTRAL' as const,
-      targetAllocation: Math.round(normalizedWeight * 10000) / 10000,
+      signal: scaledWeight >= 0.05 ? 'BULLISH' as const : 'NEUTRAL' as const,
+      targetAllocation: Math.round(scaledWeight * 10000) / 10000,
       conviction: normalizedWeight >= 0.15 ? 'high' as const : normalizedWeight >= 0.08 ? 'medium' as const : 'low' as const,
       category: getAssetCategory(ticker),
       quadrant: assetQuad,
     };
   });
-
-  console.log('Generated signals:', signals.length);
 
   return { regime, signals };
 }
@@ -336,11 +374,14 @@ function getAssetCategory(ticker: string): string {
     TLT: 'bonds', LQD: 'bonds', IEF: 'bonds', VGLT: 'bonds',
     MUB: 'bonds', TIP: 'bonds', VTIP: 'bonds',
     XLE: 'commodities', DBC: 'commodities', GCC: 'commodities',
-    GLD: 'commodities', DBA: 'commodities',
-    XOP: 'energy', FCG: 'energy',
+    GLD: 'commodities', DBA: 'commodities', LIT: 'commodities',
+    AA: 'commodities', PALL: 'commodities', VALT: 'commodities',
+    REMX: 'commodities', URA: 'commodities',
+    XOP: 'energy', FCG: 'energy', USO: 'energy',
     XLF: 'cyclicals', XLI: 'cyclicals', XLB: 'cyclicals',
     XLU: 'defensive', XLP: 'defensive', XLV: 'defensive',
-    VNQ: 'real_assets', VTV: 'value',
+    VNQ: 'real_assets', PAVE: 'real_assets',
+    VTV: 'value', IWD: 'value',
   };
   return categories[ticker] || 'other';
 }
